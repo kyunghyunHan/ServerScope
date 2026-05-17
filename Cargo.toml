@@ -1,13 +1,13 @@
 [package]
-name = "erp_rs"
+name = "serverscope"
 version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-eframe = "0.29.1"
+chrono = "0.4"
+crossbeam-channel = "0.5"
+dirs = "5.0"
+eframe = "0.34.2"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
-xlsxwriter = "0.6.1"
-calamine = "0.21.1"
-csv = "1.2"
-rfd = "0.11"
+ssh2 = "0.9"

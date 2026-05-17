@@ -1,137 +1,135 @@
-# Rust ERP System Documentation
+# ServerScope
 
-## 개요
-이 프로젝트는 Rust로 작성된  ERP 시스템입니다. egui 프레임워크를 사용하여 구축된 데스크톱 애플리케이션으로, 유연한 데이터 구조 관리와 직관적인 사용자 인터페이스를 제공합니다.
+ServerScope는 개발자와 1인 서버 운영자를 위한 가벼운 SSH 기반 Ubuntu 서버 모니터링 데스크탑 앱입니다.
 
-## 주요 기능
+## 해결하는 문제
 
-### 1. 데이터 구조 관리
-- 계층적 구조 지원
-  - 카테고리
-  - 서브카테고리
-  - 커스텀 구조체
-- 유연한 필드 타입 시스템
-  - Text (텍스트)
-  - Number (숫자)
-  - Date (날짜)
-  - Boolean (참/거짓)
+VPS나 개인 Ubuntu 서버를 운영할 때 상태 확인을 위해 매번 SSH로 접속한 뒤 `uptime`, `free`, `df`, `ss`, `journalctl`, `systemctl` 같은 명령어를 직접 실행해야 합니다. ServerScope는 이 흐름을 데스크탑 GUI에서 한 화면으로 보여줍니다.
 
-### 2. 데이터 처리
-- 실시간 데이터 입력 및 편집
-- JSON 기반 데이터 저장
-- CSV 자동 백업
-- Excel 파일 가져오기/내보내기
+## MVP 기능
 
-### 3. 사용자 인터페이스
-- 직관적인 사이드바 네비게이션
-- 구조체 편집기
-- 데이터 입력 폼
-- 카테고리 관리 시스템
+- 서버 등록: name, host, port, username, SSH private key path
+- SSH 연결 테스트
+- Dashboard: uptime, CPU, RAM, disk, network RX/TX, load average
+- Network: `ss -tunlp` 기반 TCP/UDP 연결 및 listening port 목록
+- Services: 사용자가 등록한 systemd service 상태 확인
+- Logs: 최근 error journal 50줄 표시
+- 자동 새로고침: 5초, 10초, 30초
+- 로컬 JSON config 저장
 
-## 시스템 구조
+## 설치 및 실행
 
-### 핵심 구조체
-```rust
-struct ERPApp {
-    custom_structures: Vec<CustomCategory>,     // 커스텀 구조체 목록
-    current_structure: CustomStructure,         // 현재 구조체
-    erp_data: ERPData,                         // ERP 데이터
-    // ... 기타 필드
-}
-```
-
-### 데이터 모델
-```rust
-struct CustomCategory {
-    name: String,
-    subcategories: Vec<SubCategory>,
-}
-
-struct SubCategory {
-    name: String,
-    structures: Vec<CustomStructure>,
-}
-
-struct CustomStructure {
-    name: String,
-    fields: Vec<Field>,
-}
-```
-
-## 데이터 저장
-
-### 파일 형식
-1. **구조체 정의**: `custom_structures.json`
-   - 카테고리, 서브카테고리, 구조체 정의 저장
-   - JSON 형식
-
-2. **ERP 데이터**: `erp_data.json`
-   - 실제 입력된 데이터 저장
-   - JSON 형식
-
-3. **백업 데이터**: `[structure_name].csv`
-   - 구조체별 데이터 자동 백업
-   - CSV 형식
-
-## 기능 상세
-
-### Excel 통합
-```rust
-// Excel 내보내기
-fn export_to_excel(&self, structure: &CustomStructure) -> Result<(), Box<dyn Error>>
-
-// Excel 가져오기
-fn import_from_excel(&mut self, structure: &CustomStructure) -> Result<(), Box<dyn Error>>
-```
-
-### 데이터 관리
-```rust
-// 데이터 저장
-fn save_erp_data(&self)
-
-// 데이터 로드
-fn load_erp_data(&mut self)
-
-// CSV 백업
-fn save_to_csv(&self, structure_name: &str)
-```
-
-## 사용된 주요 크레이트
-- `eframe`: GUI 프레임워크
-- `serde`: 직렬화/역직렬화
-- `calamine`: Excel 파일 읽기
-- `xlsxwriter`: Excel 파일 쓰기
-- `csv`: CSV 파일 처리
-
-## 향후 개선 사항
-1. 데이터 검증 시스템 추가
-2. 사용자 권한 관리
-3. 네트워크 동기화 기능
-4. 데이터 백업 및 복원 시스템 강화
-5. 검색 및 필터링 기능 개선
-
-## 개발 환경 설정
-
-### 필수 요구사항
-- 필요한 크레이트:
-```toml
-[dependencies]
-eframe = "0.29.1"
-serde = { version = "1.0", features = ["derive"] }
-serde_json = "1.0"
-xlsxwriter = "0.6.1"
-calamine = "0.21.1"
-csv = "1.2"
-rfd = "0.11"
-
-  ```
-
-### 빌드 및 실행
 ```bash
-# 프로젝트 빌드
-cargo build --release
-
-# 실행
-cargo run --release
+cargo run
 ```
 
+릴리스 빌드:
+
+```bash
+cargo build --release
+```
+
+## SSH key 설정
+
+ServerScope MVP는 SSH private key 인증만 사용합니다. password 저장은 제외합니다.
+
+```bash
+ssh-keygen -t ed25519 -f ~/.ssh/serverscope_demo
+ssh-copy-id -i ~/.ssh/serverscope_demo.pub user@your-server
+```
+
+앱에는 private key 파일의 내용이 아니라 경로만 입력합니다.
+
+예:
+
+```text
+/Users/you/.ssh/serverscope_demo
+```
+
+## 지원 OS
+
+- 앱 실행: macOS, Linux
+- 모니터링 대상: Ubuntu 서버
+
+## Architecture Diagram
+
+```text
+┌────────────────────┐
+│ eframe/egui UI     │
+│ - state            │
+│ - tabs             │
+│ - latest snapshot  │
+└─────────┬──────────┘
+          │ crossbeam-channel
+┌─────────▼──────────┐
+│ SSH worker thread  │
+│ - connect          │
+│ - run commands     │
+│ - parse output     │
+└─────────┬──────────┘
+          │ ssh2
+┌─────────▼──────────┐
+│ Ubuntu server      │
+│ uptime/free/df/ss  │
+│ journalctl/systemd │
+└────────────────────┘
+```
+
+## SSH Command Flow
+
+```text
+Connect/Test
+  -> uptime
+
+Refresh
+  -> uptime
+  -> top -bn1 | grep "Cpu(s)"
+  -> free -m
+  -> df -h /
+  -> cat /proc/loadavg
+  -> cat /proc/net/dev
+  -> ss -tunlp
+  -> systemctl is-active <service>
+  -> journalctl -p err -n 50 --no-pager
+```
+
+## UI Screenshot
+
+현재 저장소에는 스크린샷 파일이 포함되어 있지 않습니다. 앱 실행 후 서버를 등록하고 대시보드를 캡처해 이 섹션에 추가하면 됩니다.
+
+## 보안 정책
+
+- private key 파일 내용은 저장하지 않습니다.
+- config에는 key path만 저장합니다.
+- password 저장은 MVP에서 제외합니다.
+- 서버 명령어는 고정된 모니터링 명령어만 실행합니다.
+- 사용자가 임의 command를 실행하는 기능은 MVP에서 제외합니다.
+- systemd service 이름은 안전한 문자만 허용합니다.
+
+## Config 위치
+
+설정은 OS config directory 아래에 저장됩니다.
+
+```text
+serverscope/config.json
+```
+
+예:
+
+```text
+~/Library/Application Support/serverscope/config.json
+~/.config/serverscope/config.json
+```
+
+## Roadmap
+
+1. 서버 여러 개 동시 모니터링
+2. Docker container 상태 표시
+3. systemd restart 버튼
+4. 로그 검색/필터
+5. 알림 기능
+6. SSH tunnel
+7. agent 방식 실시간 모니터링
+8. packet capture 추가
+9. Mac App Store / Gumroad 유료 배포
+10. Pro 기능: 서버 개수 제한 해제, 로그 히스토리, export, alert
